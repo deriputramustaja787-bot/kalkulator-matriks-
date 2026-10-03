@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Matriks Lengkap</title>
+<style>
+:root{--primary:#174a7e;--secondary:#2563a6;--bg:#f3f6fa;--card:#fff;--text:#172033;--muted:#64748b;--border:#d8e0ea;--good:#166534;--danger:#b42318}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,#12365d,#2374b9);color:white;padding:28px 16px;text-align:center}
+header h1{margin:0 0 8px;font-size:30px} header p{margin:0;opacity:.92}
+.container{max-width:1150px;margin:auto;padding:18px 14px}
+.card{background:var(--card);border-radius:15px;padding:20px;margin-bottom:18px;box-shadow:0 4px 18px #1e3a5f12}
+h2{font-size:20px;margin:0 0 15px} h3{margin:18px 0 10px;font-size:17px}
+.controls,.buttons{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+select,input{font:inherit}
+select,input[type=number]{padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:white}
+button{border:0;border-radius:9px;padding:10px 14px;background:var(--secondary);color:white;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(.94)} button.dark{background:#475569} button.green{background:#16803c} button.red{background:#b42318}
+.matrix-wrap{overflow:auto}.matrix{border-collapse:separate;border-spacing:5px;margin:8px auto}
+.matrix input{width:70px;text-align:center;padding:9px 5px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}.tab{background:#e7eef7;color:#183b61}.tab.active{background:var(--primary);color:#fff}
+.result{border:1px solid var(--border);border-radius:11px;background:#f8fafc;padding:15px;overflow:auto;min-height:80px}
+.result table{border-collapse:collapse;margin:10px auto}.result td,.step td{border:1px solid #cbd5e1;padding:8px 13px;text-align:center}
+.step{background:white;border:1px solid var(--border);border-radius:10px;margin:10px 0;padding:12px}.step-title{font-weight:700;margin-bottom:7px;color:var(--primary)}
+.formula{background:#eef5fc;padding:10px;border-left:4px solid var(--secondary);margin:9px 0;border-radius:5px}
+.error{color:var(--danger);font-weight:700}.success{color:var(--good);font-weight:700}.muted{color:var(--muted)}
+footer{text-align:center;color:var(--muted);padding:20px}
+@media(max-width:600px){header h1{font-size:24px}.card{padding:15px}.matrix input{width:58px}.result td{padding:7px 9px}}
+</style>
+</head>
+<body>
+<header>
+<h1>🔢 KALKULATOR MATRIKS LENGKAP</h1>
+<p>Operasi Matriks • Determinan • Invers • SPL • Gauss • Gauss-Jordan • Cramer • LU</p>
+</header>
+
+<div class="container">
+<div class="card">
+<h2>1. Buat Matriks</h2>
+<div class="controls">
+<label>Baris A <select id="ra"></select></label>
+<label>Kolom A <select id="ca"></select></label>
+<label>Baris B <select id="rb"></select></label>
+<label>Kolom B <select id="cb"></select></label>
+<button onclick="build()">Buat / Perbarui</button>
+<button class="dark" onclick="randomFill()">Angka Acak</button>
+<button class="dark" onclick="zeroFill()">Nolkan</button>
+</div>
+<div id="inputs"></div>
+</div>
+
+<div class="card">
+<h2>2. Pilih Operasi</h2>
+<div class="tabs">
+<button class="tab active" onclick="setGroup('operasi',this)">Operasi Dasar</button>
+<button class="tab" onclick="setGroup('determinan',this)">Determinan & Invers</button>
+<button class="tab" onclick="setGroup('spl',this)">SPL</button>
+</div>
+<div id="operasi" class="buttons">
+<button onclick="calc('add')">A + B</button><button onclick="calc('sub')">A − B</button>
+<button onclick="calc('mul')">A × B</button><button onclick="calc('trans')">Aᵀ</button>
+</div>
+<div id="determinan" class="buttons" style="display:none">
+<button onclick="calc('det')">Determinan A</button><button onclick="calc('inv')">Invers A</button>
+<button onclick="calc('rank')">Rank A</button>
+</div>
+<div id="spl" class="buttons" style="display:none">
+<button onclick="calc('gauss')">Eliminasi Gauss</button>
+<button onclick="calc('gj')">Gauss-Jordan</button>
+<button onclick="calc('cramer')">Metode Cramer</button>
+<button onclick="calc('lu')">Dekomposisi LU</button>
+</div>
+</div>
+
+<div class="card">
+<h2>3. Hasil & Langkah Pengerjaan</h2>
+<div id="result" class="result">Masukkan matriks, lalu pilih operasi.</div>
+</div>
+</div>
+<footer>Kalkulator Matriks Lengkap — untuk pembelajaran matematika teknik</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+for(let n=1;n<=8;n++)['ra','ca','rb','cb'].forEach(id=>{let o=document.createElement('option');o.value=n;o.textContent=n;$(id).appendChild(o)});
+$('ra').value=3;$('ca').value=3;$('rb').value=3;$('cb').value=1;
+
+function make(name,r,c){let s='<h3>Matriks '+name+'</h3><div class="matrix-wrap"><table class="matrix">';for(let i=0;i<r;i++){s+='<tr>';for(let j=0;j<c;j++)s+=`<td><input type="number" step="any" id="${name}${i}${j}" value="0"></td>`;s+='</tr>'}return s+'</table></div>'}
+function build(){$('inputs').innerHTML=make('A',+$('ra').value,+$('ca').value)+make('B',+$('rb').value,+$('cb').value)}
+function get(name){let r=+(name==='A'?$('ra').value:$('rb').value),c=+(name==='A'?$('ca').value:$('cb').value),M=[];for(let i=0;i<r;i++){M[i]=[];for(let j=0;j<c;j++)M[i][j]=parseFloat($(`${name}${i}${j}`).value)||0}return M}
+function f(x){if(Math.abs(x)<1e-10)x=0;return Math.abs(x-Math.round(x))<1e-9?String(Math.round(x)):x.toFixed(6).replace(/0+$/,'').replace(/\.$/,'')}
+function table(M){return '<table>'+M.map(r=>'<tr>'+r.map(x=>`<td>${f(x)}</td>`).join('')+'</tr>').join('')+'</table>'}
+function copy(M){return M.map(r=>r.slice())}
+function same(A,B){return A.length===B.length&&A[0].length===B[0].length}
+function add(A,B,k=1){return A.map((r,i)=>r.map((x,j)=>x+k*B[i][j]))}
+function mul(A,B){if(A[0].length!==B.length)throw Error('Syarat perkalian: kolom A = baris B.');return A.map(r=>B[0].map((_,j)=>r.reduce((s,x,k)=>s+x*B[k][j],0)))}
+function transpose(A){return A[0].map((_,j)=>A.map(r=>r[j]))}
+
+function detSteps(A,show=true){
+ if(A.length!==A[0].length)throw Error('Matriks harus persegi.');
+ let M=copy(A),n=M.length,d=1,steps=[];
+ for(let i=0;i<n;i++){
+  let p=i;for(let k=i+1;k<n;k++)if(Math.abs(M[k][i])>Math.abs(M[p][i]))p=k;
+  if(Math.abs(M[p][i])<1e-12)return {d:0,steps};
+  if(p!==i){[M[p],M[i]]=[M[i],M[p]];d*=-1;steps.push(['Tukar baris '+(i+1)+' ↔ '+(p+1),copy(M)])}
+  let pivot=M[i][i];d*=pivot;
+  for(let k=i+1;k<n;k++){let q=M[k][i]/pivot;for(let j=i+1;j<n;j++)M[k][j]-=q*M[i][j];M[k][i]=0}
+  steps.push(['Eliminasi kolom '+(i+1),copy(M)])
+ }
+ return {d,steps}
+}
+function inverse(A){
+ if(A.length!==A[0].length)throw Error('Matriks harus persegi.');
+ let n=A.length,M=A.map((r,i)=>r.concat(Array.from({length:n},(_,j)=>i===j?1:0))),steps=[];
+ for(let i=0;i<n;i++){
+  let p=i;for(let k=i+1;k<n;k++)if(Math.abs(M[k][i])>Math.abs(M[p][i]))p=k;
+  if(Math.abs(M[p][i])<1e-12)throw Error('Matriks singular, sehingga tidak mempunyai invers.');
+  if(p!==i){[M[p],M[i]]=[M[i],M[p]];steps.push(['Tukar baris',copy(M)])}
+  let q=M[i][i];M[i]=M[i].map(x=>x/q);steps.push(['Jadikan pivot = 1',copy(M)]);
+  for(let k=0;k<n;k++)if(k!==i){let z=M[k][i];M[k]=M[k].map((x,j)=>x-z*M[i][j])}
+  steps.push(['Nolkan elemen kolom pivot',copy(M)])
+ }
+ return {inv:M.map(r=>r.slice(n)),steps}
+}
+function rref(A){
+ let M=copy(A),rows=M.length,cols=M[0].length,p=0,steps=[];
+ for(let c=0;c<cols&&p<rows;c++){
+  let q=p;for(let i=p+1;i<rows;i++)if(Math.abs(M[i][c])>Math.abs(M[q][c]))q=i;
+  if(Math.abs(M[q][c])<1e-10)continue;
+  if(q!==p){[M[q],M[p]]=[M[p],M[q]];steps.push(['Tukar baris '+(p+1)+' ↔ '+(q+1),copy(M)])}
+  let v=M[p][c];M[p]=M[p].map(x=>x/v);steps.push(['Pivot '+(p+1),copy(M)]);
+  for(let i=0;i<rows;i++)if(i!==p){let z=M[i][c];if(Math.abs(z)>1e-10)M[i]=M[i].map((x,j)=>x-z*M[p][j])}
+  steps.push(['Eliminasi kolom pivot',copy(M)]);p++
+ }
+ return {M,steps,rank:p}
+}
+function stepHTML(steps){return steps.map((s,i)=>`<div class="step"><div class="step-title">Langkah ${i+1}: ${s[0]}</div>${table(s[1])}</div>`).join('')}
+
+function solveGauss(A,b){
+ let M=A.map((r,i)=>r.concat([b[i][0]])),n=A.length,steps=[];
+ if(A[0].length!==n)throw Error('A harus matriks persegi.');
+ for(let k=0;k<n;k++){
+  let p=k;for(let i=k+1;i<n;i++)if(Math.abs(M[i][k])>Math.abs(M[p][k]))p=i;
+  if(Math.abs(M[p][k])<1e-12)throw Error('Sistem tidak memiliki solusi tunggal.');
+  if(p!==k){[M[p],M[k]]=[M[k],M[p]];steps.push(['Tukar baris',copy(M)])}
+  for(let i=k+1;i<n;i++){let q=M[i][k]/M[k][k];for(let j=k;j<=n;j++)M[i][j]-=q*M[k][j]}
+  steps.push(['Eliminasi di bawah pivot '+(k+1),copy(M)])
+ }
+ let x=Array(n).fill(0);
+ for(let i=n-1;i>=0;i--){x[i]=(M[i][n]-M[i].slice(i+1,n).reduce((s,v,j)=>s+v*x[i+1+j],0))/M[i][i]}
+ return {x:x.map(v=>[v]),steps}
+}
+function cramer(A,b){
+ let n=A.length;if(A[0].length!==n)throw Error('A harus persegi.');
+ let D=detSteps(A).d;if(Math.abs(D)<1e-12)throw Error('det(A)=0, metode Cramer tidak dapat menghasilkan solusi tunggal.');
+ let xs=[],details=[];
+ for(let j=0;j<n;j++){let C=copy(A);for(let i=0;i<n;i++)C[i][j]=b[i][0];let dj=detSteps(C).d;xs.push([dj/D]);details.push(['D'+(j+1)+' = '+f(dj),C])}
+ return {x:xs,D,details}
+}
+function lu(A){
+ let n=A.length;if(n!==A[0].length)throw Error('A harus persegi.');
+ let L=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0)),U=copy(A),steps=[];
+ for(let k=0;k<n-1;k++){if(Math.abs(U[k][k])<1e-12)throw Error('LU tanpa pivoting gagal: pivot nol.');for(let i=k+1;i<n;i++){let q=U[i][k]/U[k][k];L[i][k]=q;for(let j=k;j<n;j++)U[i][j]-=q*U[k][j];steps.push(['Eliminasi baris '+(i+1),copy(U)])}}
+ return {L,U,steps}
+}
+function setGroup(id,btn){['operasi','determinan','spl'].forEach(x=>$(x).style.display=x===id?'flex':'none');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+function calc(op){
+ try{
+  let A=get('A'),B=get('B'),r='';
+  if(op==='add'||op==='sub'){if(!same(A,B))throw Error('Ukuran A dan B harus sama.');r='<h3>Hasil</h3>'+table(add(A,B,op==='add'?1:-1))}
+  if(op==='mul')r='<h3>Hasil A × B</h3>'+table(mul(A,B))
+  if(op==='trans')r='<h3>Transpose A</h3>'+table(transpose(A))
+  if(op==='det'){let z=detSteps(A);r='<h3>Determinan A</h3>'+stepHTML(z.steps)+'<div class="formula">det(A) = <b>'+f(z.d)+'</b></div>'}
+  if(op==='inv'){let z=inverse(A);r='<h3>Invers A</h3>'+stepHTML(z.steps)+'<div class="formula">A⁻¹ =</div>'+table(z.inv)}
+  if(op==='rank'){let z=rref(A);r='<h3>Rank A</h3>'+stepHTML(z.steps)+'<div class="formula">rank(A) = <b>'+z.rank+'</b></div>'}
+  if(op==='gauss'){if(B[0].length!==1)throw Error('Untuk SPL, B harus satu kolom.');let z=solveGauss(A,B);r='<h3>Metode Eliminasi Gauss</h3>'+stepHTML(z.steps)+'<div class="formula">Solusi akhir:<br>'+table(z.x)+'</div>'}
+  if(op==='gj'){if(B[0].length!==1)throw Error('Untuk SPL, B harus satu kolom.');let aug=A.map((r,i)=>r.concat(B[i])),z=rref(aug),n=A.length,x=z.M.map(row=>[row[n]]);r='<h3>Metode Gauss-Jordan</h3>'+stepHTML(z.steps)+'<div class="formula">Matriks eselon baris tereduksi:'+table(z.M)+'<br><b>Solusi x:</b>'+table(x)+'</div>'}
+  if(op==='cramer'){if(B[0].length!==1)throw Error('B harus satu kolom.');let z=cramer(A,B);r='<h3>Metode Cramer</h3><div class="formula">D = det(A) = <b>'+f(z.D)+'</b></div>'+z.details.map(q=>`<div class="step"><div class="step-title">${q[0]}</div>${table(q[1])}</div>`).join('')+'<div class="formula"><b>Solusi:</b>'+table(z.x)+'</div>'}
+  if(op==='lu'){let z=lu(A);r='<h3>Dekomposisi LU</h3>'+stepHTML(z.steps)+'<div class="formula"><b>L =</b>'+table(z.L)+'<br><b>U =</b>'+table(z.U)+'</div>'}
+  $('result').innerHTML=r;
+ }catch(e){$('result').innerHTML='<p class="error">⚠ '+e.message+'</p>'}
+}
+function randomFill(){document.querySelectorAll('.matrix input').forEach(x=>x.value=Math.floor(Math.random()*11)-5)}
+function zeroFill(){document.querySelectorAll('.matrix input').forEach(x=>x.value=0)}
+build();
+</script>
+</body>
+</html>
